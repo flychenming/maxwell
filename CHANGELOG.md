@@ -415,7 +415,7 @@ Other bugfixes:
 - master recovery: cleanup positions from previous master; prevent
   errors on flip-back.
 - fix a bug that would trigger in certain cases when dropping a column
-  that was part of the primary-key
+  that was part of the 
 
 ### [v1.5.1](https://github.com/zendesk/maxwell/releases/tag/v1.5.1): "1.5.1 is just 1.5.1"
 

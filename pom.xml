@@ -45,56 +45,6 @@
 
   <profiles>
     <profile>
-      <id>kafka-0.8.2.2</id>
-      <dependencies>
-        <dependency>
-          <groupId>org.apache.kafka</groupId>
-          <artifactId>kafka-clients</artifactId>
-          <version>0.8.2.2</version>
-        </dependency>
-      </dependencies>
-    </profile>
-    <profile>
-      <id>kafka-0.9.0.1</id>
-      <dependencies>
-        <dependency>
-          <groupId>org.apache.kafka</groupId>
-          <artifactId>kafka-clients</artifactId>
-          <version>0.9.0.1</version>
-        </dependency>
-      </dependencies>
-    </profile>
-    <profile>
-      <id>kafka-0.10.0.1</id>
-      <dependencies>
-        <dependency>
-          <groupId>org.apache.kafka</groupId>
-          <artifactId>kafka-clients</artifactId>
-          <version>0.10.0.1</version>
-        </dependency>
-      </dependencies>
-    </profile>
-    <profile>
-      <id>kafka-0.10.2.1</id>
-      <dependencies>
-        <dependency>
-          <groupId>org.apache.kafka</groupId>
-          <artifactId>kafka-clients</artifactId>
-          <version>0.10.2.1</version>
-        </dependency>
-      </dependencies>
-    </profile>
-    <profile>
-      <id>kafka-0.11.0.1</id>
-      <dependencies>
-        <dependency>
-          <groupId>org.apache.kafka</groupId>
-          <artifactId>kafka-clients</artifactId>
-          <version>0.11.0.1</version>
-        </dependency>
-      </dependencies>
-    </profile>
-    <profile>
       <id>kafka-1.0.0</id>
       <activation>
         <activeByDefault>true</activeByDefault>
@@ -138,7 +88,7 @@
     <dependency>
       <groupId>org.antlr</groupId>
       <artifactId>antlr4-runtime</artifactId>
-      <version>4.5</version>
+      <version>4.7.2</version>
     </dependency>
     <dependency>
       <groupId>org.hamcrest</groupId>
@@ -302,20 +252,6 @@
       </plugin>
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
-        <artifactId>maven-gpg-plugin</artifactId>
-        <version>1.5</version>
-        <executions>
-          <execution>
-            <id>sign-artifacts</id>
-            <phase>verify</phase>
-            <goals>
-              <goal>sign</goal>
-            </goals>
-          </execution>
-        </executions>
-      </plugin>
-      <plugin>
-        <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-source-plugin</artifactId>
         <version>3.0.1</version>
         <executions>
@@ -327,19 +263,19 @@
           </execution>
         </executions>
       </plugin>
-      <plugin>
-        <groupId>org.apache.maven.plugins</groupId>
-        <artifactId>maven-javadoc-plugin</artifactId>
-        <version>2.9.1</version>
-        <executions>
-          <execution>
-            <id>attach-javadocs</id>
-            <goals>
-              <goal>jar</goal>
-            </goals>
-          </execution>
-        </executions>
-      </plugin>
+      <!--<plugin>-->
+        <!--<groupId>org.apache.maven.plugins</groupId>-->
+        <!--<artifactId>maven-javadoc-plugin</artifactId>-->
+        <!--<version>2.9.1</version>-->
+        <!--<executions>-->
+          <!--<execution>-->
+            <!--<id>attach-javadocs</id>-->
+            <!--<goals>-->
+              <!--<goal>jar</goal>-->
+            <!--</goals>-->
+          <!--</execution>-->
+        <!--</executions>-->
+      <!--</plugin>-->
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-compiler-plugin</artifactId>
@@ -352,7 +288,7 @@
       <plugin>
         <groupId>org.antlr</groupId>
         <artifactId>antlr4-maven-plugin</artifactId>
-        <version>4.5</version>
+        <version>4.7.1</version>
         <executions>
           <execution>
             <id>antlr</id>

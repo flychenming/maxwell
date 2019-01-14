@@ -55,7 +55,7 @@ public abstract class SchemaChange {
 		// now strip out comments
 		sql = sql.replaceAll("/\\*.*?\\*/", "");
 		sql = sql.replaceAll("\\-\\-.*", "");
-
+		sql = sql.replaceAll("#.*\r\n","");
 		for (Pattern p : SQL_BLACKLIST) {
 			if (p.matcher(sql).find())
 				return true;

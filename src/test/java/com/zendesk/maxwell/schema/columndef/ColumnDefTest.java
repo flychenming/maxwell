@@ -248,6 +248,7 @@ public class ColumnDefTest extends TestWithNameLogging {
 		assertThat(d, instanceOf(DateTimeColumnDef.class));
 
 		Timestamp t = Timestamp.valueOf("1979-10-01 19:19:19.123");
+		System.out.println(d.toSQL(t));
 		assertThat(d.toSQL(t), is("'1979-10-01 19:19:19.123'"));
 
 		t = Timestamp.valueOf("1979-10-01 19:19:19");

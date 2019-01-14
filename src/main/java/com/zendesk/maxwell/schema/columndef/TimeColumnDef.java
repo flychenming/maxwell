@@ -9,14 +9,14 @@ public class TimeColumnDef extends ColumnDefWithLength {
 	}
 
 	protected String formatValue(Object value) {
-		if ( value instanceof Timestamp ) {
+		if (value instanceof Timestamp) {
 			Time time = new Time(((Timestamp) value).getTime());
 			String timeAsStr = String.valueOf(time);
 
 			return appendFractionalSeconds(timeAsStr, ((Timestamp) value).getNanos(), this.columnLength);
 
-		} else if ( value instanceof Long ) {
-			Time time = new Time((Long) value / 1000);
+		} else if (value instanceof Long) {
+			Time time = new Time(((Long) value / 1000) - 28800000);
 			String timeAsStr = String.valueOf(time);
 
 			return appendFractionalSeconds(timeAsStr, (int) ((Long) value % 1000000) * 1000, this.columnLength);
