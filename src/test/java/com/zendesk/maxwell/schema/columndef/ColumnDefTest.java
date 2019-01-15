@@ -2,9 +2,7 @@ package com.zendesk.maxwell.schema.columndef;
 
 import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.hamcrest.CoreMatchers.is;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertThat;
-import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.*;
 
 import java.sql.Timestamp;
 import java.text.ParseException;
@@ -14,6 +12,7 @@ import java.util.GregorianCalendar;
 import java.util.TimeZone;
 
 import com.zendesk.maxwell.TestWithNameLogging;
+import com.zendesk.maxwell.producer.MaxwellOutputConfig;
 import com.zendesk.maxwell.row.RawJSONString;
 import org.junit.After;
 import org.junit.Before;
@@ -121,7 +120,7 @@ public class ColumnDefTest extends TestWithNameLogging {
 		byte input[] = new byte[] { (byte) 126, (byte) 126, (byte) 126, (byte) 126 };
 
 		ColumnDef d = ColumnDef.build("bar", "ascii", "varchar", (short) 1, false, null, null);
-		assertThat((String) d.asJSON(input), is("~~~~"));
+		assertThat((String) d.asJSON(input, null), is("~~~~"));
 	}
 
 	@Test
@@ -130,7 +129,7 @@ public class ColumnDefTest extends TestWithNameLogging {
 
 		ColumnDef d = ColumnDef.build("bar", "latin1", "varchar", (short) 1, false, null, null);
 
-		assertThat((String) d.asJSON(input), is("©©©©"));
+		assertThat((String) d.asJSON(input, null), is("©©©©"));
 	}
 
 	@Test
@@ -140,7 +139,7 @@ public class ColumnDefTest extends TestWithNameLogging {
 
 		ColumnDef d = ColumnDef.build("bar", "ascii", "json", (short) 1, false, null, null);
 
-		RawJSONString result = (RawJSONString) d.asJSON(input);
+		RawJSONString result = (RawJSONString) d.asJSON(input, null);
 		assertThat(result.json, is("{\"id\":3}"));
 	}
 
@@ -150,7 +149,7 @@ public class ColumnDefTest extends TestWithNameLogging {
 
 		ColumnDef d = ColumnDef.build("bar", "ascii", "json", (short) 1, false, null, null);
 
-		RawJSONString result = (RawJSONString) d.asJSON(input);
+		RawJSONString result = (RawJSONString) d.asJSON(input, null);
 		assertThat(result.json, is("null"));
 	}
 
@@ -224,6 +223,17 @@ public class ColumnDefTest extends TestWithNameLogging {
 	}
 
 	@Test
+	public void TestDateZeroDates() {
+		ColumnDef d = build("date", true);
+
+		MaxwellOutputConfig config = new MaxwellOutputConfig();
+		config.zeroDatesAsNull = true;
+
+		assertEquals(null, d.asJSON(Long.MIN_VALUE, config));
+	}
+
+
+	@Test
 	public void TestDateTime() throws ParseException {
 		ColumnDef d = build("datetime", true);
 		assertThat(d, instanceOf(DateTimeColumnDef.class));
@@ -231,6 +241,16 @@ public class ColumnDefTest extends TestWithNameLogging {
 		SimpleDateFormat simpleDateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
 		Date date = simpleDateFormat.parse("1979-10-01 19:19:19");
 		assertThat(d.toSQL(date), is("'1979-10-01 19:19:19'"));
+	}
+
+	@Test
+	public void TestDateTimeZeroDates() {
+		ColumnDef d = build("datetime", true);
+
+		MaxwellOutputConfig config = new MaxwellOutputConfig();
+		config.zeroDatesAsNull = true;
+
+		assertEquals(null, d.asJSON(Long.MIN_VALUE, config));
 	}
 
 	@Test
@@ -264,11 +284,11 @@ public class ColumnDefTest extends TestWithNameLogging {
 		assertThat(d, instanceOf(DateTimeColumnDef.class));
 
 		Timestamp t = Timestamp.valueOf("1979-10-01 19:19:19.001000");
-		org.junit.Assert.assertEquals(1000000, t.getNanos());
+		assertEquals(1000000, t.getNanos());
 		assertThat(d.toSQL(t), is("'1979-10-01 19:19:19.001000'"));
 
 		t = Timestamp.valueOf("1979-10-01 19:19:19.000001");
-		org.junit.Assert.assertEquals(1000, t.getNanos());
+		assertEquals(1000, t.getNanos());
 		assertThat(d.toSQL(t), is("'1979-10-01 19:19:19.000001'"));
 
 		t = Timestamp.valueOf("1979-10-01 19:19:19.345678");

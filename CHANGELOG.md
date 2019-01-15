@@ -1,5 +1,21 @@
 # Maxwell changelog
 
+### [v1.19.5](https://github.com/zendesk/maxwell/releases/tag/v1.19.5): "when there is trap"
+
+
+- Fixes for unreliable connections wrt to GTID events; previously we
+  restart in any old position, now we throw away the current transaction
+  and restart the replicator again at the head of the GTID event.
+
+
+### [v1.19.4](https://github.com/zendesk/maxwell/releases/tag/v1.19.4): "and underground"
+
+
+- Fixes for a maxwell database not making it through the blacklist
+- Add `output_null_zerodates` parameter to control how we treat
+  '0000-00-00'
+
+
 ### [v1.19.3](https://github.com/zendesk/maxwell/releases/tag/v1.19.3): "through the roof"
 
 

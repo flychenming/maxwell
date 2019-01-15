@@ -3,6 +3,7 @@ package com.zendesk.maxwell.schema.columndef;
 import java.nio.charset.Charset;
 import java.nio.charset.UnsupportedCharsetException;
 
+import com.zendesk.maxwell.producer.MaxwellOutputConfig;
 import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.codec.binary.Hex;
 
@@ -62,7 +63,7 @@ public class StringColumnDef extends ColumnDef {
 		}
 	}
 	@Override
-	public Object asJSON(Object value) {
+	public Object asJSON(Object value, MaxwellOutputConfig config) {
 
 		if ( value instanceof String ) {
 			return value;
