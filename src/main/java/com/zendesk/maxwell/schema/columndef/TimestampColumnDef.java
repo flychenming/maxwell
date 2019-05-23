@@ -1,5 +1,7 @@
 package com.zendesk.maxwell.schema.columndef;
 
+import com.zendesk.maxwell.producer.MaxwellOutputConfig;
+
 import java.sql.Timestamp;
 
 public class TimestampColumnDef extends ColumnDefWithLength {
@@ -9,19 +11,19 @@ public class TimestampColumnDef extends ColumnDefWithLength {
 	}
 
 	@Override
-	protected String formatValue(Object value) {
+	protected String formatValue(Object value, MaxwellOutputConfig config) {
 		// special case for those broken mysql dates.
 		if (value instanceof Long) {
 			Long v = (Long) value;
 			if (v == Long.MIN_VALUE || v == 0L)
-				return appendFractionalSeconds("0000-00-00 00:00:00", 0, columnLength);
+				if (config.zeroDatesAsNull)
+					return null;
+				else
+					return appendFractionalSeconds("0000-00-00 00:00:00", 0, columnLength);
 		}
 
 		Timestamp ts = DateFormatter.extractTimestamp(value);
 		String dateString = TimestampFormatter.formatDateTime(value, ts);
-		if (dateString == null)
-			return null;
-		else
-			return appendFractionalSeconds(dateString, ts.getNanos(), columnLength);
+		return appendFractionalSeconds(dateString, ts.getNanos(), columnLength);
 	}
 }

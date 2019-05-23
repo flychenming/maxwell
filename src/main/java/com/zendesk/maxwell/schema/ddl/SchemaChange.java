@@ -56,6 +56,7 @@ public abstract class SchemaChange {
 		sql = sql.replaceAll("/\\*.*?\\*/", "");
 		sql = sql.replaceAll("\\-\\-.*", "");
 		sql = sql.replaceAll("#.*\r\n","");
+		sql = sql.replaceAll("/\\*[\\S\\s]*?\\*/\r\n","");
 		for (Pattern p : SQL_BLACKLIST) {
 			if (p.matcher(sql).find())
 				return true;
