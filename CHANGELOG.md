@@ -1,5 +1,56 @@
 # Maxwell changelog
 
+### [v1.22.0](https://github.com/zendesk/maxwell/releases/tag/v1.22.0): "through the roof, and underground"
+
+
+- Bootstrapping has been reworked and is now available in all setups,
+including those in which the maxwell store is split from the replicator.
+- cleanup and fix a deadlock in the kafka fallback queue logic
+- add .partition_string = to javascript filters
+
+
+### [v1.21.1](https://github.com/zendesk/maxwell/releases/tag/v1.21.1): "ohhhhhh oh oh"
+
+
+- Upgrade binlog connector.  Should fix issues around deserialization
+errors.
+
+
+### [v1.21.0](https://github.com/zendesk/maxwell/releases/tag/v1.21.0): "through the roof"
+
+
+- Bootstrapping output no longer contain binlog positions.  Please update
+  any code that relies on this.
+- Fix 3 parser issues.
+
+
+### [v1.20.0](https://github.com/zendesk/maxwell/releases/tag/v1.20.0): "and so you learn the only way to go is"
+
+
+- add support for partitioning by transaction ID thx @hexene
+- add support for a kafka "fallback" topic to write to
+  when a message fails to write
+- add UJIS charset support
+- parser bug: multiple strings concatenate to make one default string
+- parser bug: deal with bizarre column renames which are then referenced
+  in AFTER column statements
+
+
+### [v1.19.7](https://github.com/zendesk/maxwell/releases/tag/v1.19.7): "in every corner of your room"
+
+
+- fix a parser error with empty sql comments
+- interpret latin-1 as windows-1252, not iso-whatever, thx @borleaandrei
+
+
+### [v1.19.6](https://github.com/zendesk/maxwell/releases/tag/v1.19.6): "set up for you"
+
+
+- Further fixes for GTID-reconnection issues.
+- Crash sanely when GTID-enabled maxwell is connected to clearly the wrong master,
+  thanks @acampoh
+
+
 ### [v1.19.5](https://github.com/zendesk/maxwell/releases/tag/v1.19.5): "when there is trap"
 
 

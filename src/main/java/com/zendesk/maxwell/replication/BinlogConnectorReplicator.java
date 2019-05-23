@@ -9,8 +9,9 @@ import com.github.shyiko.mysql.binlog.event.QueryEventData;
 import com.github.shyiko.mysql.binlog.event.RowsQueryEventData;
 import com.github.shyiko.mysql.binlog.event.TableMapEventData;
 import com.github.shyiko.mysql.binlog.event.deserialization.EventDeserializer;
+import com.github.shyiko.mysql.binlog.network.ServerException;
 import com.zendesk.maxwell.MaxwellMysqlConfig;
-import com.zendesk.maxwell.bootstrap.AbstractBootstrapper;
+import com.zendesk.maxwell.bootstrap.BootstrapController;
 import com.zendesk.maxwell.filtering.Filter;
 import com.zendesk.maxwell.monitoring.Metrics;
 import com.zendesk.maxwell.producer.AbstractProducer;
@@ -29,6 +30,7 @@ import com.zendesk.maxwell.util.RunLoopProcess;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.IOException;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
@@ -39,6 +41,7 @@ import java.util.regex.Pattern;
 public class BinlogConnectorReplicator extends RunLoopProcess implements Replicator {
 	static final Logger LOGGER = LoggerFactory.getLogger(BinlogConnectorReplicator.class);
 	private static final long MAX_TX_ELEMENTS = 10000;
+	public static final int BAD_BINLOG_ERROR_CODE = 1236;
 
 	private final String clientID;
 	private final String maxwellSchemaDatabaseName;
@@ -49,6 +52,7 @@ public class BinlogConnectorReplicator extends RunLoopProcess implements Replica
 	private final LinkedBlockingDeque<BinlogConnectorEvent> queue = new LinkedBlockingDeque<>(20);
 	private final TableCache tableCache;
 	private final Scripting scripting;
+	private ServerException lastCommError;
 
 	private final boolean stopOnEOF;
 	private boolean hitEOF = false;
@@ -58,7 +62,7 @@ public class BinlogConnectorReplicator extends RunLoopProcess implements Replica
 	private Long stopAtHeartbeat;
 	private Filter filter;
 
-	private final AbstractBootstrapper bootstrapper;
+	private final BootstrapController bootstrapper;
 	private final AbstractProducer producer;
 	private RowMapBuffer rowBuffer;
 
@@ -79,7 +83,7 @@ public class BinlogConnectorReplicator extends RunLoopProcess implements Replica
 	public BinlogConnectorReplicator(
 		SchemaStore schemaStore,
 		AbstractProducer producer,
-		AbstractBootstrapper bootstrapper,
+		BootstrapController bootstrapper,
 		MaxwellMysqlConfig mysqlConfig,
 		Long replicaServerID,
 		String maxwellSchemaDatabaseName,
@@ -103,6 +107,7 @@ public class BinlogConnectorReplicator extends RunLoopProcess implements Replica
 		this.schemaStore = schemaStore;
 		this.tableCache = new TableCache(maxwellSchemaDatabaseName);
 		this.filter = filter;
+		this.lastCommError = null;
 
 		/* setup metrics */
 		rowCounter = metrics.getRegistry().counter(
@@ -117,7 +122,7 @@ public class BinlogConnectorReplicator extends RunLoopProcess implements Replica
 		transactionExecutionTime = metrics.getRegistry().histogram(metrics.metricName("transaction", "execution_time"));
 
 		/* setup binlog */
-		this.binlogLifecycleListener = new BinlogConnectorLifecycleListener();
+		this.binlogLifecycleListener = new BinlogConnectorLifecycleListener(this);
 
 		this.client = new BinaryLogClient(mysqlConfig.host, mysqlConfig.port, mysqlConfig.user, mysqlConfig.password);
 
@@ -134,6 +139,17 @@ public class BinlogConnectorReplicator extends RunLoopProcess implements Replica
 			this.client.setBinlogFilename(startBinlog.getFile());
 			this.client.setBinlogPosition(startBinlog.getOffset());
 			this.gtidPositioning = false;
+		}
+
+		/*
+			for the moment, the reconnection code in keep-alive is broken;
+			it sends along a binlog file as well as the GTID set,
+			which triggers mysql to jump ahead a binlog.
+			At some point I presume shyko will fix it and we can remove this.
+		 */
+
+		if ( this.gtidPositioning ) {
+			this.client.setKeepAlive(false);
 		}
 
 		EventDeserializer eventDeserializer = new EventDeserializer();
@@ -188,6 +204,21 @@ public class BinlogConnectorReplicator extends RunLoopProcess implements Replica
 	}
 
 	/**
+	 * Listener for communication errors so we can stop everything and exit on this case
+	 * @param ex Exception thrown by the BinaryLogClient
+	 */
+	public void onCommunicationFailure(Exception ex) {
+
+		// Stopping Maxwell only in case we cannot read binlogs from the current server
+		if (ex instanceof ServerException) {
+			ServerException serverEx = (ServerException) ex;
+			if (serverEx.getErrorCode() == BAD_BINLOG_ERROR_CODE) {
+				lastCommError = serverEx;
+			}
+		}
+	}
+
+	/**
 	 * Get the last heartbeat that the replicator has processed.
 	 *
 	 * We pass along the value of the heartbeat to the producer inside the row map.
@@ -202,6 +233,31 @@ public class BinlogConnectorReplicator extends RunLoopProcess implements Replica
 		stopAtHeartbeat = heartbeat;
 	}
 
+	/**
+	 * Checks if any communications errors in the last update loop.
+	 * @throws ServerException with the details of the communication error.
+	 */
+	private void checkCommErrors() throws ServerException {
+		if (lastCommError != null) {
+			LOGGER.error("Shutting down due to communication errors to Mysql", lastCommError);
+			throw lastCommError;
+		}
+	}
+
+	private boolean shouldSkipRow(RowMap row) throws IOException {
+		if ( isMaxwellRow(row) && !isBootstrapInsert(row))
+			return true;
+
+		/* NOTE: bootstrapper.shouldSkip will block us if
+		   we're in synchronous bootstrapping mode.  It also
+		   has the side affect of taking the row into a queue if
+		   we're in async bootstrapping mode */
+		if ( bootstrapper != null && bootstrapper.shouldSkip(row) )
+			return true;
+
+		return false;
+	}
+
 	protected void processRow(RowMap row) throws Exception {
 		if ( row instanceof HeartbeatRowMap) {
 			producer.push(row);
@@ -213,11 +269,10 @@ public class BinlogConnectorReplicator extends RunLoopProcess implements Replica
 					this.taskState.stopped();
 				}
 			}
-		} else if (!bootstrapper.shouldSkip(row) && !isMaxwellRow(row))
+		} else if ( !shouldSkipRow(row) )
 			producer.push(row);
-		else
-			bootstrapper.work(row, producer, this);
 	}
+
 
 
 	/**
@@ -253,6 +308,10 @@ public class BinlogConnectorReplicator extends RunLoopProcess implements Replica
 	private void processQueryEvent(String dbName, String sql, SchemaStore schemaStore, Position position, Position nextPosition, Long timestamp) throws Exception {
 		List<ResolvedSchemaChange> changes = schemaStore.processSQL(sql, dbName, position);
 		Long schemaId = getSchemaId();
+
+		if ( bootstrapper != null)
+			bootstrapper.setCurrentSchemaID(schemaId);
+
 		for (ResolvedSchemaChange change : changes) {
 			if (change.shouldOutput(filter)) {
 				DDLMap ddl = new DDLMap(change, timestamp, sql, position, nextPosition, schemaId);
@@ -333,7 +392,14 @@ public class BinlogConnectorReplicator extends RunLoopProcess implements Replica
 		return row.getDatabase().equals(this.maxwellSchemaDatabaseName);
 	}
 
+	private boolean isBootstrapInsert(RowMap row) {
+		return row.getDatabase().equals(this.maxwellSchemaDatabaseName)
+			&& row.getRowType().equals("insert")
+			&& row.getTable().equals("bootstrap");
+	}
+
 	private void ensureReplicatorThread() throws Exception {
+		checkCommErrors();
 		if ( !client.isConnected() && !stopOnEOF ) {
 			if (this.gtidPositioning) {
 				// When using gtid positioning, reconnecting should take us to the top
@@ -524,10 +590,15 @@ public class BinlogConnectorReplicator extends RunLoopProcess implements Replica
 					if (BinlogConnectorEvent.BEGIN.equals(sql)) {
 						try {
 							rowBuffer = getTransactionRows(event);
-							rowBuffer.setServerId(event.getEvent().getHeader().getServerId());
-							rowBuffer.setThreadId(qe.getThreadId());
-							rowBuffer.setSchemaId(getSchemaId());
-						} catch ( ClientReconnectedException e ) {}
+						} catch ( ClientReconnectedException e ) {
+							// rowBuffer should already be empty by the time we get to this switch
+							// statement, but we null it for clarity
+							rowBuffer = null;
+							break;
+						}
+						rowBuffer.setServerId(event.getEvent().getHeader().getServerId());
+						rowBuffer.setThreadId(qe.getThreadId());
+						rowBuffer.setSchemaId(getSchemaId());
 					} else {
 						processQueryEvent(event);
 					}
