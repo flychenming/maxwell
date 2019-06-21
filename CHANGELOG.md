@@ -1,5 +1,28 @@
 # Maxwell changelog
 
+### [v1.22.3](https://github.com/zendesk/maxwell/releases/tag/v1.22.3): "my doubt, my failings"
+
+
+- fix issue with google pubsub in 1.22.2
+
+
+### [v1.22.2](https://github.com/zendesk/maxwell/releases/tag/v1.22.2): "some girls"
+
+
+- fix an issue with bootstrapping-on-replicas
+- add --output_primary_keys and --output_primary_key_columns
+- fix a very minor memory leak with blacklists
+
+
+### [v1.22.1](https://github.com/zendesk/maxwell/releases/tag/v1.22.1): "a snow covered field"
+
+
+- fix crash in rabbit-mq producer
+- better support for maxwell + azure-mysql
+- remove bogus different-host bootstrap check
+- some security upgrades
+
+
 ### [v1.22.0](https://github.com/zendesk/maxwell/releases/tag/v1.22.0): "through the roof, and underground"
 
 
